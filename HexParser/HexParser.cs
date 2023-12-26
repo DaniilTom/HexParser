@@ -91,17 +91,18 @@ public static class HexParser
     /// Return Dictionary, where Key is extended address, and Value is data with linear addresses, limited by address range
     /// </summary>
     /// <param name="path">Path to hex file</param>
-    /// <param name="range">Range of addresses (inclusive start, inclusive end)</param>
+    /// <param name="startAddress">Iinclusive start address</param>
+    /// <param name="endAddress">Iinclusive end address</param>
     /// <returns></returns>
-    public static ImmutableDictionary<ushort, ImmutableList<HexLine>> GetSorted32BitHexData(string path, Range range)
+    public static ImmutableDictionary<ushort, ImmutableList<HexLine>> GetSorted32BitHexData(string path, uint startAddress, uint endAddress)
     {
         var d = GetSorted32BitHexData(path);
 
-        ushort extStartAddress = (ushort)((range.Start.Value & 0xffff0000) >> 16);
-        ushort lineStartAddress = (ushort)(range.Start.Value & 0xffff);
+        ushort extStartAddress = (ushort)((startAddress & 0xffff0000) >> 16);
+        ushort lineStartAddress = (ushort)(startAddress & 0xffff);
 
-        ushort extEndAddress = (ushort)((range.End.Value & 0xffff0000) >> 16);
-        ushort lineEndAddress = (ushort)(range.End.Value & 0xffff);
+        ushort extEndAddress = (ushort)((endAddress & 0xffff0000) >> 16);
+        ushort lineEndAddress = (ushort)(endAddress & 0xffff);
 
         SortedDictionary<ushort, ImmutableList<HexLine>> sd = new SortedDictionary<ushort, ImmutableList<HexLine>>();
 
