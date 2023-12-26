@@ -2,7 +2,7 @@
 using System.ComponentModel;
 using System.Linq.Expressions;
 
-namespace hexparser;
+namespace HexParser;
 
 public static class HexParser
 {

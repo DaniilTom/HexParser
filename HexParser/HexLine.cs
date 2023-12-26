@@ -1,4 +1,4 @@
-namespace hexparser;
+namespace HexParser;
 
 public class HexLine {
     public HexLine(string line) {

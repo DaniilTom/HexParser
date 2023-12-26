@@ -1,4 +1,4 @@
-namespace hexparser;
+namespace HexParser;
 
 public class Extended32BitHexFileDetectedException : Exception {
     public Extended32BitHexFileDetectedException(int lineNumber) : 
