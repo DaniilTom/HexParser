@@ -1,14 +1,22 @@
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 
 namespace HexParser;
 
 public static class HexParser
 {
-    public static ImmutableList<HexLine> GetRawHexData(string path)
+    /// <summary>
+    /// Parse hex file to collection of HexLine objects represent every string
+    /// </summary>
+    /// <param name="stream">Data stream contains hex</param>
+    /// <param name="leaveStreamOpen">True to leave stream open, default: false</param>
+    /// <returns></returns>
+    /// <exception cref="NotValidHexFileException">Throw when EOF is missing</exception>
+    /// <exception cref="UnsupportedRecordTypeException">Throw when unsupported Record Type detected (valid only 00, 01 and 04)</exception>
+    public static ImmutableList<HexLine> GetRawHexData(Stream stream, bool leaveStreamOpen = false)
     {
         List<HexLine> l = new List<HexLine>();
 
-        using (StreamReader s = new StreamReader(new FileStream(path, FileMode.Open), System.Text.Encoding.ASCII))
+        using (StreamReader s = new StreamReader(stream, System.Text.Encoding.ASCII, leaveOpen: leaveStreamOpen))
         {
             while (!s.EndOfStream)
             {
@@ -25,10 +33,26 @@ public static class HexParser
         return l.ToImmutableList();
     }
 
-    public static ImmutableList<HexLine> GetSorted16BitHexData(string path)
+    /// <summary>
+    /// Parse hex file to collection of HexLine objects represent every string
+    /// </summary>
+    /// <param name="path">Path to hex file</param>
+    /// <returns></returns>
+    public static ImmutableList<HexLine> GetRawHexData(string path)
     {
+        return GetRawHexData(new FileStream(path, FileMode.Open));
+    }
 
-        List<HexLine> l = GetRawHexData(path).ToList();
+    /// <summary>
+    /// Parse 16-bit address hex file to collection of HexLine objects represent every string sorted by address
+    /// </summary>
+    /// <param name="stream">Data stream contains hex</param>
+    /// <param name="leaveStreamOpen">True to leave stream open, default: false</param>
+    /// <returns></returns>
+    /// <exception cref="Extended32BitHexFileException">Throw when 32-bit address hex file detected (presence Record Type 04)</exception>
+    public static ImmutableList<HexLine> GetSorted16BitHexData(Stream stream, bool leaveStreamOpen = false)
+    {
+        List<HexLine> l = GetRawHexData(stream, leaveStreamOpen).ToList();
 
         if (l.Any(line => line.Type == DataType.EXTENDED_ADDRESS))
             throw new Extended32BitHexFileException(l.FindIndex(line => line.Type == DataType.EXTENDED_ADDRESS) + 1);
@@ -36,15 +60,20 @@ public static class HexParser
         return l.OrderBy(line => line.Address).ToImmutableList();
     }
 
-    /// <summary>
-    /// Return Dictionary, where Key is extended address, and Value is data with linear addresses
-    /// </summary>
-    /// <param name="path">Path to hex file</param>
-    /// <returns></returns>
-    public static ImmutableDictionary<ushort, ImmutableList<HexLine>> GetSorted32BitHexData(string path)
+    public static ImmutableList<HexLine> GetSorted16BitHexData(string path)
     {
+        return GetSorted16BitHexData(new FileStream(path, FileMode.Open));
+    }
 
-        List<HexLine> lines = GetRawHexData(path).ToList();
+    /// <summary>
+    /// Parse 32-bit address hex file to dictionary, where Key is Extended Adress and Value is list of linear address hex string
+    /// </summary>
+    /// <param name="stream">Data stream contains hex</param>
+    /// <param name="leaveStreamOpen">True to leave stream open, default: false</param>
+    /// <returns></returns>
+    public static ImmutableDictionary<ushort, ImmutableList<HexLine>> GetSorted32BitHexData(Stream stream, bool leaveStreamOpen = false)
+    {
+        List<HexLine> lines = GetRawHexData(stream, leaveStreamOpen).ToList();
 
         SortedDictionary<ushort, List<HexLine>> d = new SortedDictionary<ushort, List<HexLine>>();
 
@@ -85,15 +114,26 @@ public static class HexParser
     }
 
     /// <summary>
-    /// Return Dictionary, where Key is extended address, and Value is data with linear addresses, limited by address range
+    /// Parse 32-bit address hex file to dictionary, where Key is Extended Adress and Value is list of linear address hex string
     /// </summary>
     /// <param name="path">Path to hex file</param>
-    /// <param name="startAddress">Iinclusive start address</param>
-    /// <param name="endAddress">Iinclusive end address</param>
     /// <returns></returns>
-    public static ImmutableDictionary<ushort, ImmutableList<HexLine>> GetSorted32BitHexData(string path, uint startAddress, uint endAddress)
+    public static ImmutableDictionary<ushort, ImmutableList<HexLine>> GetSorted32BitHexData(string path)
     {
-        var d = GetSorted32BitHexData(path);
+        return GetSorted32BitHexData(new FileStream(path, FileMode.Open));
+    }
+
+    /// <summary>
+    /// Parse 32-bit address hex file to dictionary, where Key is Extended Adress and Value is list of linear address hex string, limited by address range (INCLUSIVE)
+    /// </summary>
+    /// <param name="stream">Data stream contains hex</param>
+    /// <param name="startAddress">Inclusive start address</param>
+    /// <param name="endAddress">Inclusive end address</param>
+    /// <param name="leaveStreamOpen">True to leave stream open, default: false</param>
+    /// <returns></returns>
+    public static ImmutableDictionary<ushort, ImmutableList<HexLine>> GetSorted32BitHexData(Stream stream, int startAddress, int endAddress, bool leaveStreamOpen = false)
+    {
+        var d = GetSorted32BitHexData(stream, leaveStreamOpen);
 
         ushort extStartAddress = (ushort)((startAddress & 0xffff0000) >> 16);
         ushort lineStartAddress = (ushort)(startAddress & 0xffff);
@@ -123,5 +163,17 @@ public static class HexParser
         }
 
         return sd.ToImmutableDictionary();
+    }
+
+    /// <summary>
+    /// Parse 32-bit address hex file to dictionary, where Key is Extended Adress and Value is list of linear address hex string, limited by address range (INCLUSIVE)
+    /// </summary>
+    /// <param name="path">Data stream contains hex</param>
+    /// <param name="startAddress">Inclusive start address</param>
+    /// <param name="endAddress">Inclusive end address</param>
+    /// <returns></returns>
+    public static ImmutableDictionary<ushort, ImmutableList<HexLine>> GetSorted32BitHexData(string path, int startAddress, int endAddress)
+    {
+        return GetSorted32BitHexData(new FileStream(path, FileMode.Open), startAddress, endAddress);
     }
 }
