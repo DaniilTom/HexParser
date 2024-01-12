@@ -1,6 +1,4 @@
-﻿using System.Collections.Immutable;
-using System.ComponentModel;
-using System.Linq.Expressions;
+using System.Collections.Immutable;
 
 namespace HexParser;
 
@@ -8,7 +6,6 @@ public static class HexParser
 {
     public static ImmutableList<HexLine> GetRawHexData(string path)
     {
-
         List<HexLine> l = new List<HexLine>();
 
         using (StreamReader s = new StreamReader(new FileStream(path, FileMode.Open), System.Text.Encoding.ASCII))
@@ -23,7 +20,7 @@ public static class HexParser
             throw new NotValidHexFileException("There is no EOF record at the end");
 
         if (l.Any(line => line.Type == DataType.UNSUPPORTED))
-            throw new UnsupportedRecordTypeDetectedException();
+            throw new UnsupportedRecordTypeException();
 
         return l.ToImmutableList();
     }
@@ -34,7 +31,7 @@ public static class HexParser
         List<HexLine> l = GetRawHexData(path).ToList();
 
         if (l.Any(line => line.Type == DataType.EXTENDED_ADDRESS))
-            throw new Extended32BitHexFileDetectedException(l.FindIndex(line => line.Type == DataType.EXTENDED_ADDRESS) + 1);
+            throw new Extended32BitHexFileException(l.FindIndex(line => line.Type == DataType.EXTENDED_ADDRESS) + 1);
 
         return l.OrderBy(line => line.Address).ToImmutableList();
     }
@@ -106,7 +103,7 @@ public static class HexParser
 
         SortedDictionary<ushort, ImmutableList<HexLine>> sd = new SortedDictionary<ushort, ImmutableList<HexLine>>();
 
-        foreach(var p in d)
+        foreach (var p in d)
         {
             if (p.Key == extStartAddress)
             {
@@ -118,7 +115,8 @@ public static class HexParser
             }
             else if (p.Key == extEndAddress)
             {
-                if (lineEndAddress != 0 && p.Value.Count > 0) {
+                if (lineEndAddress != 0 && p.Value.Count > 0)
+                {
                     sd.Add(p.Key, p.Value.Where(line => line.Address <= lineEndAddress).ToImmutableList());
                 }
             }
