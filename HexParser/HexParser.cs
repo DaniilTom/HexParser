@@ -4,33 +4,63 @@ namespace HexParser;
 
 public static class HexParser
 {
+    public static string[] CommentStartSequences = { ";", "//" };
+
     /// <summary>
     /// Parse hex file to collection of HexLine objects represent every string
     /// </summary>
     /// <param name="stream">Data stream contains hex</param>
     /// <param name="leaveStreamOpen">True to leave stream open, default: false</param>
     /// <returns></returns>
-    /// <exception cref="NotValidHexFileException">Throw when EOF is missing</exception>
+    /// <exception cref="InvalidHexFileException">Throw when 'weak' validation failed: no EOF record, no semicolon ':' in line, empty lines</exception>
     /// <exception cref="UnsupportedRecordTypeException">Throw when unsupported Record Type detected (valid only 00, 01 and 04)</exception>
     public static ImmutableList<HexLine> GetRawHexData(Stream stream, bool leaveStreamOpen = false)
     {
-        List<HexLine> l = new List<HexLine>();
+        List<string> lines = new List<string>();
 
         using (StreamReader s = new StreamReader(stream, System.Text.Encoding.ASCII, leaveOpen: leaveStreamOpen))
         {
             while (!s.EndOfStream)
             {
-                l.Add(new HexLine(s.ReadLine()!));
+                var line = s.ReadLine();
+
+                lines.Add(line);
             }
         }
 
-        if (l.Last().Type != DataType.EOF)
-            throw new NotValidHexFileException("There is no EOF record at the end");
+        List<HexLine> hexLines = new List<HexLine>();
+        foreach (var line in lines)
+        {
+            if (string.IsNullOrEmpty(line))
+                throw new InvalidHexFileException($"Empty line at position {hexLines.Count() + 1}");
 
-        if (l.Any(line => line.Type == DataType.UNSUPPORTED))
+            if (CommentStartSequences.Any(startSequence => line.StartsWith(startSequence)))
+                continue;
+
+            if (!line.Contains(":"))
+                throw new InvalidHexFileException($"Line {hexLines.Count() + 1} does not contains start symbol ':' : '{line}'");
+
+            try
+            {
+                var hexLine = new HexLine(line.Substring(line.IndexOf(':')));
+                hexLines.Add(hexLine);
+
+                if (hexLine.Type == RecordType.EOF)
+                    break;
+            }
+            catch (Exception e)
+            {
+                throw new InvalidHexFileException($"Line {hexLines.Count() + 1} can not be parsed: '{line}'");
+            }
+        }
+
+        if (hexLines.Last().Type != RecordType.EOF)
+            throw new InvalidHexFileException("There is no EOF record at the end");
+
+        if (hexLines.Any(line => line.Type == RecordType.UNSUPPORTED))
             throw new UnsupportedRecordTypeException();
 
-        return l.ToImmutableList();
+        return hexLines.ToImmutableList();
     }
 
     /// <summary>
@@ -54,8 +84,8 @@ public static class HexParser
     {
         List<HexLine> l = GetRawHexData(stream, leaveStreamOpen).ToList();
 
-        if (l.Any(line => line.Type == DataType.EXTENDED_ADDRESS))
-            throw new Extended32BitHexFileException(l.FindIndex(line => line.Type == DataType.EXTENDED_ADDRESS) + 1);
+        if (l.Any(line => line.Type == RecordType.EXTENDED_ADDRESS))
+            throw new Extended32BitHexFileException(l.FindIndex(line => line.Type == RecordType.EXTENDED_ADDRESS) + 1);
 
         return l.OrderBy(line => line.Address).ToImmutableList();
     }
@@ -77,10 +107,10 @@ public static class HexParser
 
         SortedDictionary<ushort, List<HexLine>> d = new SortedDictionary<ushort, List<HexLine>>();
 
-        if (lines.First().Type == DataType.DATA)
+        if (lines.First().Type == RecordType.DATA)
             d.Add(0, new List<HexLine>());
 
-        foreach (var extAddr in lines.Where(line => line.Type == DataType.EXTENDED_ADDRESS))
+        foreach (var extAddr in lines.Where(line => line.Type == RecordType.EXTENDED_ADDRESS))
         {
             ushort extAddrParsed = ushort.Parse(extAddr.Data, System.Globalization.NumberStyles.HexNumber);
             if (!d.ContainsKey(extAddrParsed))
@@ -92,15 +122,15 @@ public static class HexParser
         {
             switch (line.Type)
             {
-                case DataType.DATA:
+                case RecordType.DATA:
                     d[currentExtAddress].Add(line);
                     break;
 
-                case DataType.EXTENDED_ADDRESS:
+                case RecordType.EXTENDED_ADDRESS:
                     currentExtAddress = ushort.Parse(line.Data, System.Globalization.NumberStyles.HexNumber);
                     break;
 
-                case DataType.EOF:
+                case RecordType.EOF:
                     break;
             }
         }

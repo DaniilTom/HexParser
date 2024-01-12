@@ -5,8 +5,8 @@ public class Extended32BitHexFileException : Exception {
         base($"Hex file contains Extended Linear Address Record Type (04) at the {lineNumber}.") {}
 }
 
-public class NotValidHexFileException : Exception {
-    public NotValidHexFileException(string message) :
+public class InvalidHexFileException : Exception {
+    public InvalidHexFileException(string message) :
         base(message) {}
 }
 
