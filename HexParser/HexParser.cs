@@ -175,20 +175,15 @@ public static class HexParser
 
         foreach (var p in d)
         {
-            if (p.Key == extStartAddress)
+            if (p.Key == extStartAddress || p.Key == extEndAddress)
             {
-                sd.Add(p.Key, p.Value.Where(line => line.Address >= lineStartAddress).ToImmutableList());
+                var data = p.Value.Where(line => line.Address >= lineStartAddress && line.Address <= lineEndAddress);
+                if (data.Count() > 0)
+                    sd.Add(p.Key, data.ToImmutableList());
             }
             else if (p.Key > extStartAddress && p.Key < extEndAddress)
             {
                 sd.Add(p.Key, p.Value);
-            }
-            else if (p.Key == extEndAddress)
-            {
-                if (lineEndAddress != 0 && p.Value.Count > 0)
-                {
-                    sd.Add(p.Key, p.Value.Where(line => line.Address <= lineEndAddress).ToImmutableList());
-                }
             }
         }
 
