@@ -101,23 +101,23 @@ public static class HexParser
     /// <param name="stream">Data stream contains hex</param>
     /// <param name="leaveStreamOpen">True to leave stream open, default: false</param>
     /// <returns></returns>
-    public static ImmutableDictionary<ushort, ImmutableList<HexLine>> GetSorted32BitHexData(Stream stream, bool leaveStreamOpen = false)
+    public static ImmutableDictionary<uint, ImmutableList<HexLine>> GetSorted32BitHexData(Stream stream, bool leaveStreamOpen = false)
     {
         List<HexLine> lines = GetRawHexData(stream, leaveStreamOpen).ToList();
 
-        SortedDictionary<ushort, List<HexLine>> d = new SortedDictionary<ushort, List<HexLine>>();
+        SortedDictionary<uint, List<HexLine>> d = new SortedDictionary<uint, List<HexLine>>();
 
         if (lines.First().Type == RecordType.DATA)
             d.Add(0, new List<HexLine>());
 
         foreach (var extAddr in lines.Where(line => line.Type == RecordType.EXTENDED_ADDRESS))
         {
-            ushort extAddrParsed = ushort.Parse(extAddr.Data, System.Globalization.NumberStyles.HexNumber);
+            uint extAddrParsed = uint.Parse(extAddr.Data, System.Globalization.NumberStyles.HexNumber) << 16;
             if (!d.ContainsKey(extAddrParsed))
                 d.Add(extAddrParsed, new List<HexLine>());
         }
 
-        ushort currentExtAddress = 0x0000;
+        uint currentExtAddress = 0x00000000;
         foreach (var line in lines)
         {
             switch (line.Type)
@@ -127,7 +127,7 @@ public static class HexParser
                     break;
 
                 case RecordType.EXTENDED_ADDRESS:
-                    currentExtAddress = ushort.Parse(line.Data, System.Globalization.NumberStyles.HexNumber);
+                    currentExtAddress = uint.Parse(line.Data, System.Globalization.NumberStyles.HexNumber) << 16;
                     break;
 
                 case RecordType.EOF:
@@ -148,7 +148,7 @@ public static class HexParser
     /// </summary>
     /// <param name="path">Path to hex file</param>
     /// <returns></returns>
-    public static ImmutableDictionary<ushort, ImmutableList<HexLine>> GetSorted32BitHexData(string path)
+    public static ImmutableDictionary<uint, ImmutableList<HexLine>> GetSorted32BitHexData(string path)
     {
         return GetSorted32BitHexData(new FileStream(path, FileMode.Open));
     }
@@ -161,17 +161,17 @@ public static class HexParser
     /// <param name="endAddress">Inclusive end address</param>
     /// <param name="leaveStreamOpen">True to leave stream open, default: false</param>
     /// <returns></returns>
-    public static ImmutableDictionary<ushort, ImmutableList<HexLine>> GetSorted32BitHexData(Stream stream, int startAddress, int endAddress, bool leaveStreamOpen = false)
+    public static ImmutableDictionary<uint, ImmutableList<HexLine>> GetSorted32BitHexData(Stream stream, uint startAddress, uint endAddress, bool leaveStreamOpen = false)
     {
         var d = GetSorted32BitHexData(stream, leaveStreamOpen);
 
-        ushort extStartAddress = (ushort)((startAddress & 0xffff0000) >> 16);
-        ushort lineStartAddress = (ushort)(startAddress & 0xffff);
+        uint extStartAddress = startAddress & 0xffff0000;
+        uint lineStartAddress = startAddress & 0xffff;
 
-        ushort extEndAddress = (ushort)((endAddress & 0xffff0000) >> 16);
-        ushort lineEndAddress = (ushort)(endAddress & 0xffff);
+        uint extEndAddress = endAddress & 0xffff0000;
+        uint lineEndAddress = endAddress & 0xffff;
 
-        SortedDictionary<ushort, ImmutableList<HexLine>> sd = new SortedDictionary<ushort, ImmutableList<HexLine>>();
+        SortedDictionary<uint, ImmutableList<HexLine>> sd = new SortedDictionary<uint, ImmutableList<HexLine>>();
 
         foreach (var p in d)
         {
@@ -197,7 +197,7 @@ public static class HexParser
     /// <param name="startAddress">Inclusive start address</param>
     /// <param name="endAddress">Inclusive end address</param>
     /// <returns></returns>
-    public static ImmutableDictionary<ushort, ImmutableList<HexLine>> GetSorted32BitHexData(string path, int startAddress, int endAddress)
+    public static ImmutableDictionary<uint, ImmutableList<HexLine>> GetSorted32BitHexData(string path, uint startAddress, uint endAddress)
     {
         return GetSorted32BitHexData(new FileStream(path, FileMode.Open), startAddress, endAddress);
     }
