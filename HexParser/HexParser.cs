@@ -173,22 +173,32 @@ public static class HexParser
 
         SortedDictionary<uint, ImmutableList<HexLine>> sd = new SortedDictionary<uint, ImmutableList<HexLine>>();
 
-        foreach (var p in d)
+        if (extStartAddress == extEndAddress)
         {
-            if (p.Key == extStartAddress)
+            if (d.ContainsKey(extStartAddress))
+                sd.Add(extStartAddress,
+                        d[extStartAddress].Where(line => line.Address >= lineStartAddress && line.Address <= lineEndAddress).ToImmutableList());
+        }
+        else
+        {
+            foreach (var p in d)
             {
-                sd.Add(p.Key, p.Value.Where(line => line.Address >= lineStartAddress).ToImmutableList());
-            }
-            else if (p.Key > extStartAddress && p.Key < extEndAddress)
-            {
-                sd.Add(p.Key, p.Value);
-            }
-            else if (p.Key == extEndAddress)
-            {
-                if (lineEndAddress != 0 && p.Value.Count > 0)
-                {
-                    sd.Add(p.Key, p.Value.Where(line => line.Address <= lineEndAddress).ToImmutableList());
-                }
+                if (p.Key < extStartAddress || p.Key > extEndAddress)
+                    continue;
+
+                Func<HexLine, bool> filter;
+
+                if (p.Key == extStartAddress)
+                    filter = line => line.Address >= lineStartAddress;
+                else if (p.Key == extEndAddress)
+                    filter = line => line.Address <= lineEndAddress;
+                else
+                    filter = line => true;
+
+                var value = p.Value.Where(filter).ToImmutableList();
+
+                if (!value.IsEmpty)
+                    sd.Add(p.Key, value);
             }
         }
 
