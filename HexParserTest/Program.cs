@@ -8,6 +8,8 @@ class Program
 
         var rawData = GetRawHexData(path);
 
+        var sortedData16bit = GetSorted16BitHexData(path);
+
         var sortedData = GetSorted32BitHexData(path);
 
         var filtered = GetSorted32BitHexData(path, 0x1d001000, 0x1d031100);

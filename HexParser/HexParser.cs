@@ -95,6 +95,19 @@ public static class HexParser
         return GetSorted16BitHexData(new FileStream(path, FileMode.Open));
     }
 
+    public static ImmutableList<HexLine> GetSorted16BitHexData(Stream stream, ushort startAddress, ushort endAddress, bool leaveStreamOpen = false)
+    {
+        if (endAddress < startAddress)
+            throw new IncorrectAdressessException();
+
+        return GetSorted16BitHexData(stream, leaveStreamOpen).Where(line => line.Address >= startAddress && line.Address <= endAddress).ToImmutableList();
+    }
+
+    public static ImmutableList<HexLine> GetSorted16BitHexData(string path, ushort startAddress, ushort endAddress)
+    {
+        return GetSorted16BitHexData(new FileStream(path, FileMode.Open), startAddress, endAddress);
+    }
+
     /// <summary>
     /// Parse 32-bit address hex file to dictionary, where Key is Extended Adress and Value is list of linear address hex string
     /// </summary>
