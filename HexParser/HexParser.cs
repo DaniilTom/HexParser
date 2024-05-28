@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 
 namespace HexParser;
 
@@ -163,6 +163,9 @@ public static class HexParser
     /// <returns></returns>
     public static ImmutableDictionary<uint, ImmutableList<HexLine>> GetSorted32BitHexData(Stream stream, uint startAddress, uint endAddress, bool leaveStreamOpen = false)
     {
+        if (endAddress < startAddress)
+            throw new IncorrectAdressessException();
+
         var d = GetSorted32BitHexData(stream, leaveStreamOpen);
 
         uint extStartAddress = startAddress & 0xffff0000;
