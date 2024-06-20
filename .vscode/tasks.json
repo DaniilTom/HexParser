@@ -1,0 +1,19 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build hexparsertest",
+			"type": "process",
+			"command": "dotnet",
+			"args": ["build", "HexParserTest/HexParserTest.csproj"],
+			"problemMatcher": "$msCompile",
+		},
+		{
+			"label": "Build hexparser",
+			"type": "process",
+			"command": "dotnet",
+			"args": ["build", "HexParser/Hexparser.csproj"],
+			"problemMatcher": "$msCompile"
+		}
+	]
+}
